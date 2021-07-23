@@ -1,78 +1,46 @@
-var express = require('express');
-var r = express.Router();
+const tf = require('@tensorflow/tfjs-node');
 
-// load pre-trained model
-const model = require('./sdk/model.js');
+function normalized(data){ // i & r
+    x1 = (data[0] - 42.773) / 10.33017
+    x2 = (data[1] - 29.9412) / 8.936247
+    x3 = (data[2] - 94.8964) / 8.887377
 
-// Bot Setting
-const TelegramBot = require('node-telegram-bot-api');
-const token = '1904266982:AAH-QGMlxvEjDojxZZHEqIlXW26UAucFgnA'
-const bot = new TelegramBot(token, {polling: true});
+    return [x1, x2, x3]
+}
+
+function denormalized(data){
+    y1 = (data[0] * 16.08198) + 32.2718
+    y2 = (data[1] * 8.918185) + 39.959
+    y3 = (data[2] * 11.79956) + 69.739
+
+    return [y1, y2, y3]
+}
 
 
-state = 0;
-// bots
-bot.onText(/\/start/, (msg) => { 
-    console.log(msg)
-    bot.sendMessage(
-        msg.chat.id,
-        `hello ${msg.chat.first_name}, welcome...\n
-        click /predict to predict`
-    );   
-    state = 0;
-});
+async function predict(data){
+    let in_dim = 3;
+    
+    data = normalized(data);
+    shape = [1, in_dim];
 
-bot.onText(/\/predict/, (msg) => { 
-    console.log(msg)
-    bot.sendMessage(
-        msg.chat.id,
-        `masukkan nilai x1|x2|x3 Contohnya 4|4|4`
-    ); 
-    state = 1;
-});
-     
-bot.on('message', (msg) => {
-    if(state == 1){
-        s = msg.text.split("|");
-        model.predict(
-            [
-                parseFloat(s[0]), // string to float
-                parseFloat(s[1]),
-                parseFloat(s[2]),
-                ]
-            ).then((jres1)=>{
-            console.log(jres1);
-                
-          model.predict([parseFloat(s[0]), parseFloat(s[1]), parseFloat(s[2]),parseFloat(jres1[0]), parseFloat(jres1[1]), parseFloat(jres1[2])]);
-                bot.sendMessage(
-                    msg.chat.id,
-                    `nilai Y1 yang diprediksi adalah ${jres1[0]} derajat`
-                    );
-                bot.sendMessage(
-                    msg.chat.id,
-                    `nilai Y2 yang diprediksi adalah ${jres1[1]} derajat`
-                    );
-                bot.sendMessage(
-                    msg.chat.id,
-                    `nilai Y3 yang diprediksi adalah ${jres1[2]} derajat`
-                     );
-                        
-            })
-      }
-    state = 1;
-})
+    tf_data = tf.tensor2d(data, shape);
 
-// routers
-r.get('/predict/:x1/:x2/:x3', function(req, res, next) {    
-            model.predict(
-        [
-            parseFloat(req.params.x1), // string to float
-            parseFloat(req.params.x2),
-            parseFloat(req.params.x3)
-        ]
-    ).then((jres1)=>{
-       res.json(jres1)
-    })            
-});
+    try{
+        // path load in public access => github
+        const path = 'https://raw.githubusercontent.com/Afaizin-bitt/UAS_JST/main/public/Model5/model.json';
+        const model = await tf.loadGraphModel(path);
+        
+        predict = model.predict(
+                tf_data
+        );
+        result = predict.dataSync();
+        return denormalized( result );
+        
+    }catch(e){
+      console.log(e);
+    }
+}
 
-module.exports = r;
+module.exports = {
+    predict: predict 
+}
