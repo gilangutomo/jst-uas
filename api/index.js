@@ -16,7 +16,7 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(
         msg.chat.id,
         `hello ${msg.chat.first_name}, welcome...\n
-        click  /predict to know about x1 x2 and x3`
+        click  /predict to know about x1 x2  x3 and x4`
     );   
 });
 
@@ -37,11 +37,13 @@ bot.on('message', (msg) => {
         x1 = s[0]
         x2 = s[1]
         x3 = s[2]
+        x4 = s[3]
         model.predict(
             [
                 parseFloat(s[0]), // string to float
                 parseFloat(s[1]),
                 parseFloat(s[2])
+                parseFloat(s[3])
             ]
         ).then((jres)=>{
             bot.sendMessage(
@@ -55,6 +57,11 @@ bot.on('message', (msg) => {
             bot.sendMessage(
                 msg.chat.id,
                 `nilai x3 yang diprediksi adalah ${jres[2]} `
+            );   
+            bot.sendMessage(
+                msg.chat.id,
+                `nilai x4 yang diprediksi adalah ${jres[3]} `
+                     
          );   
 })
     }else{
@@ -64,12 +71,13 @@ bot.on('message', (msg) => {
 
 
 // routers
-r.get('/prediction/:x2/:x2/:x3', function(req, res, next) {    
+r.get('/prediction/:x1/:x2/:x3/:x4', function(req, res, next) {    
     model.predict(
         [
             parseFloat(req.params.x1), // string to float
             parseFloat(req.params.x2),
-            parseFloat(req.params.x3)
+            parseFloat(req.params.x3),
+            parseFloat(req.params.x4)
         ]
     ).then((jres)=>{
         res.json(jres);
